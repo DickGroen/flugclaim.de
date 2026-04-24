@@ -1,560 +1,510 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Flugverspätung? Dein fertiges Anspruchsschreiben in 24 Stunden | FlugClaim.de</title>
-  <meta name="description" content="Flug verspätet oder annulliert? Erhalte innerhalb von 24 Stunden eine vollständige EU261-Analyse und ein fertiges Anspruchsschreiben. Einmalig €29 — du behältst 100% der Entschädigung.">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
-  <style>
-    /* ── For-whom section ── */
-    .forwhom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 8px; }
-    @media (max-width: 680px) { .forwhom-grid { grid-template-columns: 1fr; } }
-    .forwhom-card { border-radius: 14px; padding: 24px; }
-    .forwhom-card--yes { background: var(--green-soft); border: 1.5px solid #bbf7d0; }
-    .forwhom-card--no  { background: var(--surface); border: 1.5px solid var(--line); }
-    .forwhom-title { font-weight: 700; font-size: 1rem; margin-bottom: 14px; }
-    .forwhom-title--yes { color: var(--green); }
-    .forwhom-title--no  { color: var(--muted); }
-    .forwhom-list { list-style: none; display: grid; gap: 8px; }
-    .forwhom-list li { font-size: 0.88rem; color: var(--ink-3); display: flex; gap: 8px; line-height: 1.5; }
-    .forwhom-icon--yes { color: var(--green); font-weight: 700; flex-shrink: 0; }
-    .forwhom-icon--no  { color: var(--muted); flex-shrink: 0; }
+import TRIAGE_PROMPT from '../prompts/triage.js';
+import HAIKU_PROMPT from '../prompts/haiku.js';
+import SONNET_PROMPT from '../prompts/sonnet.js';
 
-    /* ── Trust badges ── */
-    .trust-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 8px; }
-    @media (max-width: 680px) { .trust-grid { grid-template-columns: 1fr; } }
-    .trust-item { background: var(--white); border: 1px solid var(--line); border-radius: 12px; padding: 20px 16px; }
-    .trust-item__label { font-size: 0.76rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); margin-bottom: 6px; }
-    .trust-item__text { font-size: 0.88rem; color: var(--ink-3); line-height: 1.65; }
+const GRATIS_PROMPT = `Du bist ein Analyse-System für EU261/2004 Fluggastrechte.
 
-    /* ── Expectation box ── */
-    .expectation-box { background: var(--surface); border: 1.5px solid var(--line); border-radius: 14px; padding: 28px; margin-top: 8px; }
-    .expectation-box h3 { font-size: 1.05rem; margin-bottom: 16px; color: var(--ink); }
-    .expectation-row { display: flex; gap: 12px; margin-bottom: 14px; font-size: 0.9rem; color: var(--ink-3); line-height: 1.6; }
-    .expectation-icon { flex-shrink: 0; font-weight: 700; color: var(--green); }
+Deine Aufgabe:
+Lies das Dokument und erstelle eine kurze, kostenlose Ersteinschätzung für den Fluggast.
 
-    /* ── Compare table ── */
-    .compare-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; margin-top: 24px; }
-    .compare-table th { padding: 12px 16px; font-weight: 700; border-bottom: 2px solid var(--line); }
-    .compare-table th:first-child { text-align: left; }
-    .compare-table th:not(:first-child) { text-align: center; }
-    .compare-table td { padding: 12px 16px; border-bottom: 1px solid var(--line); }
-    .compare-table td:first-child { text-align: left; color: var(--ink); }
-    .compare-table td:not(:first-child) { text-align: center; }
-    .compare-table tr:nth-child(even) { background: var(--surface); }
-    .col-them { color: var(--muted); }
-    .col-us { color: var(--accent); font-weight: 700; }
-    .compare-winner { background: var(--green-soft) !important; }
-    .compare-winner td:last-child { color: var(--green); font-weight: 700; }
+Fokus: Besteht möglicherweise ein Anspruch auf Entschädigung nach EU-Verordnung 261/2004?
 
-    /* ── Pricing box ── */
-    .pricing-box { background: var(--accent-soft); border: 2px solid var(--accent-2); border-radius: 16px; padding: 32px 28px; text-align: center; margin-top: 8px; }
-    .pricing-box__amount { font-size: 3rem; font-weight: 700; color: var(--accent); line-height: 1; margin-bottom: 6px; font-family: 'DM Serif Display', Georgia, serif; }
-    .pricing-box__sub { font-size: 0.9rem; color: var(--muted); margin-bottom: 20px; }
-    .pricing-box__list { list-style: none; display: grid; gap: 8px; max-width: 400px; margin: 0 auto 24px; text-align: left; }
-    .pricing-box__list li { font-size: 0.9rem; color: var(--ink-3); display: flex; gap: 8px; }
-    .pricing-box__honest { background: var(--white); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; font-size: 0.84rem; color: var(--ink-3); line-height: 1.65; max-width: 480px; margin: 0 auto 24px; text-align: left; }
-  </style>
-</head>
+Gib deine Antwort IMMER exakt in dieser Struktur zurück:
 
-<body>
+[AIRLINE]
+Name der Fluggesellschaft
+[/AIRLINE]
 
-<!-- HEADER -->
-<header class="site-header">
-  <div class="container--wide">
-    <div class="site-header__inner">
-      <div class="logo">
-        <span class="logo-dot"></span>
-        FlugClaim.de
-      </div>
-      <button class="header-cta" onclick="openModal()">Anspruch prüfen — €29</button>
-    </div>
-  </div>
-</header>
+[DISRUPTION_TYPE]
+Art der Störung (z.B. Verspätung, Annullierung, Beförderungsverweigerung)
+[/DISRUPTION_TYPE]
 
-<!-- HERO -->
-<section class="hero">
-  <div class="container">
+[CLAIM_AMOUNT]
+Möglicher Entschädigungsbetrag als Zahl (250, 400 oder 600) — nur die Zahl, kein €-Zeichen
+[/CLAIM_AMOUNT]
 
-    <div class="hero__eyebrow" style="justify-content:center;text-align:center;display:block;margin-left:auto;margin-right:auto;">
-      EU-Verordnung 261/2004 · bis zu €600 Entschädigung pro Person
-    </div>
+[FLIGHT_DATE]
+Flugdatum (z.B. 15.03.2024) oder "unklar"
+[/FLIGHT_DATE]
 
-    <h1 style="text-align:center;">Dein Flug war verspätet oder annulliert.<br>Hol dir das volle Geld zurück.</h1>
+[RISK]
+low oder medium oder high
+[/RISK]
 
-    <p class="hero__sub" style="text-align:center;margin-left:auto;margin-right:auto;">
-      Wir analysieren deinen Anspruch und erstellen ein fertiges Anspruchsschreiben — innerhalb von 24 Stunden.
-      Du sendest es selbst an die Airline und behältst <strong>100% der Entschädigung</strong>.
-      Kein Claimbureau, das 25–35% einbehält.
-    </p>
+[TEASER]
+Schreibe genau 1 Satz: Nenne NUR dass möglicherweise ein Anspruch auf Entschädigung besteht.
+Nenne KEINE Gründe, KEINE Paragraphen, KEINE Details.
+[/TEASER]`;
 
-    <div class="value-strip">
-      <span class="value-item"><span class="vi-check">✔</span> Fertiges Schreiben innerhalb von 24 Stunden</span>
-      <span class="value-item"><span class="vi-check">✔</span> Keine Erfolgsprovision — einmalig €29</span>
-      <span class="value-item"><span class="vi-check">✔</span> Prüfung auf außergewöhnliche Umstände</span>
-      <span class="value-item"><span class="vi-check">✔</span> Dokument wird nach Analyse gelöscht</span>
-    </div>
+// ── Claude API ────────────────────────────────────────────────────────────────
 
-    <!-- ZWEI OPTIONEN -->
-    <div class="optie-grid">
-
-      <!-- BEZAHLT -->
-      <div class="optie-card optie-card--betaald">
-        <div class="optie-badge optie-badge--betaald">Empfohlen</div>
-        <h3 class="optie-title">Analyse + Anspruchsschreiben</h3>
-        <p class="optie-desc">Du sendest das Schreiben selbst — und behältst bis zu €181 mehr als bei einem Claimbureau.</p>
-        <ul class="optie-list">
-          <li>✓ Vollständige EU261-Analyse deines Anspruchs</li>
-          <li>✓ Prüfung: Hält das "außergewöhnliche Umstände"-Argument stand?</li>
-          <li>✓ Fertiges Anspruchsschreiben — direkt sendbar</li>
-          <li>✓ Konkrete nächste Schritte bei Ablehnung</li>
-          <li>✓ Innerhalb von 24 Stunden per E-Mail</li>
-        </ul>
-        <div style="background:var(--accent-soft);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:0.82rem;color:var(--accent);margin-bottom:16px;line-height:1.55;">
-          Du sendest die Anfrage selbst. Dafür behältst du bis zu <strong>€181 mehr</strong> als bei einem Claimbureau.
-        </div>
-        <div class="optie-price">€29 <span>einmalig · kein Abo</span></div>
-        <a href="https://buy.stripe.com/DEIN_STRIPE_LINK" class="optie-btn optie-btn--betaald">
-          Jetzt zahlen und Analyse starten →
-        </a>
-        <p class="optie-security">🔒 Sichere Zahlung über Stripe · SEPA-Lastschrift verfügbar</p>
-        <p class="optie-guarantee">Nicht zufrieden? Geld zurück — ohne Diskussion.</p>
-      </div>
-
-      <!-- GRATIS -->
-      <div class="optie-card optie-card--gratis">
-        <div class="optie-badge optie-badge--gratis">Kostenlos</div>
-        <h3 class="optie-title">Erst prüfen, dann entscheiden</h3>
-        <p class="optie-desc">Noch unsicher, ob dein Anspruch Aussicht auf Erfolg hat? Wir schätzen kostenlos ein.</p>
-        <ul class="optie-list">
-          <li>✓ Fluggesellschaft und Störungsart erkannt</li>
-          <li>✓ Erste Einschätzung: hoch, mittel oder niedrig</li>
-          <li>✓ Möglicher Entschädigungsbetrag (€250 / €400 / €600)</li>
-          <li>✓ Per E-Mail — spätestens nächsten Werktag vor 16:00 Uhr</li>
-        </ul>
-        <div class="optie-price">Kostenlos</div>
-        <input type="file" id="gratis-file-input" accept=".pdf,.jpg,.jpeg,.png"
-               onchange="handleGratisFileSelect(this)" style="display:none;">
-        <label class="upload-section upload-section--small" id="gratis-upload-zone" for="gratis-file-input">
-          <div class="upload-label">Dokument hochladen</div>
-          <div class="upload-hint">PDF, JPG oder PNG · max. 10 MB</div>
-        </label>
-        <div id="gratis-contact-fields" style="display:none;gap:8px;flex-direction:column;">
-          <input type="text" id="gratis-name" placeholder="Dein Name" class="optie-input">
-          <input type="email" id="gratis-email" placeholder="Deine E-Mail-Adresse" class="optie-input">
-        </div>
-        <button class="optie-btn optie-btn--gratis" id="gratis-btn" onclick="startGratisUpload()" disabled>
-          Kostenlose Einschätzung anfordern
-        </button>
-        <div class="optie-status" id="gratis-status"></div>
-      </div>
-
-    </div>
-
-    <!-- UPLOAD (verborgen) -->
-    <input type="file" id="file-input" accept=".pdf,.jpg,.jpeg,.png" onchange="handleFile(this)" style="display:none;">
-    <label class="upload-section" id="upload-zone" for="file-input" style="display:none;">
-      <div class="upload-label">Dokument hochladen</div>
-      <div class="upload-hint">PDF, JPG oder PNG</div>
-    </label>
-
-    <!-- TEASER -->
-    <div class="teaser" id="teaser">
-      <div class="teaser__header">
-        <div>
-          <div style="font-size:0.72rem;color:rgba(255,255,255,0.6);margin-bottom:4px;letter-spacing:0.05em;text-transform:uppercase;">Erkannt</div>
-          <div class="teaser__company" id="teaser-company">Dein Flug ist bereit zur Analyse</div>
-        </div>
-        <div class="teaser__status-label">Bereit</div>
-      </div>
-      <div class="teaser__body">
-        <div class="teaser__found" id="teaser-found">Gut. Das passiert jetzt:</div>
-        <div class="teaser__sub" id="teaser-sub">Dein Dokument wurde erkannt. Klicke unten um deine Analyse anzufordern.</div>
-        <div class="teaser__locked">
-          <div class="lock-icon">
-            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          </div>
-          <div class="teaser__locked-text" id="teaser-locked-text">
-            <strong>Vollständige Analyse nach Zahlung</strong>
-            Entschädigungsmöglichkeiten, Einschätzung und fertiges Anspruchsschreiben — innerhalb von 24 Stunden.
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="cta-wrap">
-      <button class="cta-main" onclick="openModal()">
-        Anspruch prüfen — €29 · Innerhalb von 24 Stunden
-      </button>
-      <div class="cta-sub">Einmalige Zahlung · kein Abo · 🔒 Sichere Zahlung über Stripe</div>
-    </div>
-
-  </div>
-</section>
-
-<!-- HOW IT WORKS -->
-<section class="section">
-  <div class="container">
-    <div class="section-label">So funktioniert es</div>
-    <h2>In 3 Schritten zum fertigen Anspruchsschreiben</h2>
-    <div class="steps">
-      <div class="step">
-        <div class="step__num">01</div>
-        <div class="step__title">Zahlen und Dokument hochladen</div>
-        <div class="step__desc">Nach der Zahlung lädst du deine Bordkarte, Buchungsbestätigung oder den Airline-Brief hoch. Dauert weniger als 2 Minuten.</div>
-      </div>
-      <div class="step">
-        <div class="step__num">02</div>
-        <div class="step__title">Wir analysieren deinen Anspruch</div>
-        <div class="step__desc">Wir prüfen Verspätung, Annullierung, ob das "außergewöhnliche Umstände"-Argument der Airline stichhaltig ist, und welcher Entschädigungsbetrag gilt.</div>
-      </div>
-      <div class="step">
-        <div class="step__num">03</div>
-        <div class="step__title">Fertiges Schreiben per E-Mail</div>
-        <div class="step__desc">Innerhalb von 24 Stunden erhältst du die Analyse und ein fertiges Anspruchsschreiben. Du sendest es selbst — und behältst 100% der Entschädigung.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- FÜR WEN -->
-<section class="section section--alt">
-  <div class="container">
-    <div class="section-label">Für wen ist das?</div>
-    <h2>Ehrlich: das passt nicht für jeden</h2>
-    <div class="forwhom-grid">
-      <div class="forwhom-card forwhom-card--yes">
-        <div class="forwhom-title forwhom-title--yes">Gut geeignet wenn...</div>
-        <ul class="forwhom-list">
-          <li><span class="forwhom-icon--yes">✓</span> Dein Flug mindestens 3 Stunden verspätet ankam oder annulliert wurde</li>
-          <li><span class="forwhom-icon--yes">✓</span> Der Flug in der EU abflog — oder mit einer EU-Airline ankam</li>
-          <li><span class="forwhom-icon--yes">✓</span> Die Verspätung nicht älter als 3 Jahre ist</li>
-          <li><span class="forwhom-icon--yes">✓</span> Du bereit bist, das Schreiben selbst zu senden und ggf. einmal nachzuhaken</li>
-          <li><span class="forwhom-icon--yes">✓</span> Du lieber €29 zahlst als 25–35% Provision abzugeben</li>
-        </ul>
-      </div>
-      <div class="forwhom-card forwhom-card--no">
-        <div class="forwhom-title forwhom-title--no">Weniger geeignet wenn...</div>
-        <ul class="forwhom-list">
-          <li><span class="forwhom-icon--no">—</span> Du gar keine Zeit hast, das Schreiben selbst zu senden</li>
-          <li><span class="forwhom-icon--no">—</span> Der Flug von außerhalb der EU mit einer Nicht-EU-Airline kam</li>
-          <li><span class="forwhom-icon--no">—</span> Die Verspätung weniger als 3 Stunden betrug</li>
-          <li><span class="forwhom-icon--no">—</span> Du rechtliche Vertretung für ein Gerichtsverfahren benötigst</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- VERGLEICH -->
-<section class="section">
-  <div class="container">
-    <div class="section-label">Warum FlugClaim.de?</div>
-    <h2>Du behältst 100% — nicht 65%</h2>
-    <p style="color:var(--ink-3);max-width:620px;margin-bottom:8px;line-height:1.7;">
-      Traditionelle Fluggasthelfer klingen kostenlos — aber auf €600 Entschädigung zahlst du bis zu <strong>€210 Provision</strong>. Mit FlugClaim.de für €29 behältst du den Rest.
-    </p>
-    <div style="overflow-x:auto;">
-      <table class="compare-table">
-        <thead>
-          <tr>
-            <th></th>
-            <th class="col-them">Claimbureau</th>
-            <th class="col-us">FlugClaim.de</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td>Kosten</td><td class="col-them">25–35% deiner Entschädigung</td><td class="col-us">€29 einmalig</td></tr>
-          <tr><td>Du erhältst bei €600</td><td class="col-them">€390 – €450</td><td class="col-us">€571</td></tr>
-          <tr class="compare-winner"><td>Dein Vorteil</td><td class="col-them">—</td><td class="col-us">Bis zu €181 mehr</td></tr>
-          <tr><td>Ergebnis</td><td class="col-them">Wochen bis Monate</td><td class="col-us">Innerhalb von 24 Stunden</td></tr>
-          <tr><td>Du sendest das Schreiben</td><td class="col-them">Nein</td><td class="col-us">Ja — fertig zum Senden</td></tr>
-          <tr><td>Kosten bei Misserfolg</td><td class="col-them">Nichts</td><td class="col-us">€29 + vollständiger Bericht</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p style="font-size:0.78rem;color:var(--muted);margin-top:12px;">Vergleich basiert auf öffentlich verfügbaren Provisionssätzen (25–35%). Keine namentliche Nennung einzelner Anbieter.</p>
-  </div>
-</section>
-
-<!-- VERTRAUEN -->
-<section class="section section--alt">
-  <div class="container">
-    <div class="section-label">Vertrauensbasis</div>
-    <h2>Auf welcher Grundlage arbeiten wir?</h2>
-    <div class="trust-grid">
-      <div class="trust-item">
-        <div class="trust-item__label">Rechtliche Grundlage</div>
-        <div class="trust-item__text">EU-Verordnung 261/2004 gilt für alle Flüge ab einem EU-Flughafen und für EU-Airlines bei Ankunft in der EU. Sie ist unmittelbar geltendes Recht — keine Grauzone.</div>
-      </div>
-      <div class="trust-item">
-        <div class="trust-item__label">Was wir prüfen</div>
-        <div class="trust-item__text">Verspätungsdauer, Flugstrecke, Abflugort, Airline-Nationalität und ob ein "außergewöhnliche Umstände"-Einwand rechtlich standhält. Technische Defekte zählen in der Regel nicht dazu.</div>
-      </div>
-      <div class="trust-item">
-        <div class="trust-item__label">Was wir nicht sind</div>
-        <div class="trust-item__text">Wir leisten keine Rechtsberatung und übernehmen keine rechtliche Vertretung. Bei Ablehnung empfehlen wir konkrete nächste Schritte: Schlichtungsstelle Reise & Verkehr, Luftfahrt-Bundesamt oder Amtsgericht.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ERWARTUNGSMANAGEMENT -->
-<section class="section">
-  <div class="container">
-    <div class="section-label">Ehrlich gesagt</div>
-    <h2>Was du wissen solltest — bevor du zahlst</h2>
-    <div class="expectation-box">
-      <div class="expectation-row">
-        <span class="expectation-icon">✓</span>
-        <span>Du erhältst ein fertiges Anspruchsschreiben, das du per E-Mail oder Post an die Airline sendest. Das dauert 5 Minuten.</span>
-      </div>
-      <div class="expectation-row">
-        <span class="expectation-icon">✓</span>
-        <span>Viele Airlines antworten innerhalb von 2–4 Wochen. Manche brauchen länger oder lehnen zunächst ab. Das ist normal.</span>
-      </div>
-      <div class="expectation-row">
-        <span class="expectation-icon">✓</span>
-        <span>Bei Ablehnung bekommst du von uns konkrete Hinweise zum weiteren Vorgehen — Schlichtungsstelle, Amtsgericht oder Verbraucherzentrale.</span>
-      </div>
-      <div class="expectation-row">
-        <span class="expectation-icon">✓</span>
-        <span>Wenn dein Anspruch nicht kansrijk ist, sagen wir das klar — du erhältst trotzdem einen vollständigen Bericht. Kein leerer Report.</span>
-      </div>
-      <div class="expectation-row" style="margin-bottom:0;">
-        <span class="expectation-icon">✓</span>
-        <span>FlugClaim.de ist für Fluggäste, die bereit sind, den Brief selbst zu senden — und dafür bis zu €181 mehr in der Tasche behalten wollen.</span>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ZAHLEN -->
-<section class="section section--alt">
-  <div class="container">
-    <div class="section-label">Die Fakten</div>
-    <h2>Deine Rechte kennen, muss nicht teuer sein</h2>
-    <div class="proof-grid">
-      <div class="proof-item">
-        <div class="proof-num">€600</div>
-        <div class="proof-label">Max. Entschädigung pro Person auf Langstrecken außerhalb der EU</div>
-      </div>
-      <div class="proof-item">
-        <div class="proof-num">3 Std.</div>
-        <div class="proof-label">Ankunftsverspätung, ab der EU261/2004 greifen kann</div>
-      </div>
-      <div class="proof-item">
-        <div class="proof-num">3 Jahre</div>
-        <div class="proof-label">Verjährungsfrist in Deutschland — auch ältere Flüge prüfen lassen</div>
-      </div>
-      <div class="proof-item">
-        <div class="proof-num">24 Std.</div>
-        <div class="proof-label">Analyse + Anspruchsschreiben in deinem Postfach</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- PRICING -->
-<section class="section">
-  <div class="container">
-    <div class="section-label">Preis</div>
-    <h2>Transparent und einmalig</h2>
-    <div class="pricing-box">
-      <div class="pricing-box__amount">€29</div>
-      <div class="pricing-box__sub">einmalig · kein Abo · keine Erfolgsprovision</div>
-      <ul class="pricing-box__list">
-        <li><span style="color:var(--accent);font-weight:700;">✓</span> Vollständige EU261-Analyse</li>
-        <li><span style="color:var(--accent);font-weight:700;">✓</span> Fertiges Anspruchsschreiben innerhalb von 24 Stunden</li>
-        <li><span style="color:var(--accent);font-weight:700;">✓</span> Konkrete nächste Schritte bei Ablehnung</li>
-        <li><span style="color:var(--accent);font-weight:700;">✓</span> Auch wenn kein Anspruch besteht: vollständiger Bericht</li>
-      </ul>
-      <div class="pricing-box__honest">
-        Zur Transparenz: Du sendest das Schreiben selbst und bist der Ansprechpartner für die Airline. Im Gegenzug behältst du 100% der Entschädigung — kein Claimbureau, das 25–35% abzieht.
-      </div>
-      <a href="https://buy.stripe.com/DEIN_STRIPE_LINK" class="optie-btn optie-btn--betaald" style="max-width:360px;display:block;margin:0 auto;">
-        Jetzt zahlen und Analyse starten →
-      </a>
-      <p style="font-size:0.78rem;color:var(--muted);margin-top:12px;">🔒 Sichere Zahlung über Stripe · SEPA-Lastschrift verfügbar · Nicht zufrieden? Geld zurück.</p>
-    </div>
-  </div>
-</section>
-
-<!-- FAQ -->
-<section class="section section--alt">
-  <div class="container">
-    <div class="section-label">Häufige Fragen</div>
-    <h2>Alles, was du wissen möchtest</h2>
-    <div class="faq-list">
-
-      <div class="faq-item">
-        <div class="faq-q" onclick="toggleFaq(this)">
-          Für welche Flüge gilt EU-VO 261/2004?
-          <svg class="faq-chevron" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-        </div>
-        <div class="faq-a">Die Verordnung gilt für alle Flüge, die von einem EU-Flughafen abfliegen — unabhängig von der Airline. Außerdem für Flüge, die in der EU ankommen und von einer EU-Airline betrieben werden. Auch Norwegen, Island und die Schweiz fallen darunter.</div>
-      </div>
-
-      <div class="faq-item">
-        <div class="faq-q" onclick="toggleFaq(this)">
-          Was passiert, wenn die Airline außergewöhnliche Umstände behauptet?
-          <svg class="faq-chevron" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-        </div>
-        <div class="faq-a">Viele Airlines nutzen diesen Einwand pauschal. Unsere Analyse bewertet, ob er in deinem Fall rechtlich standhält. Technische Defekte am Flugzeug und Personalmangel gelten laut Rechtsprechung in der Regel nicht als außergewöhnliche Umstände.</div>
-      </div>
-
-      <div class="faq-item">
-        <div class="faq-q" onclick="toggleFaq(this)">
-          Kann ich auch ältere Flüge geltend machen?
-          <svg class="faq-chevron" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-        </div>
-        <div class="faq-a">In Deutschland beträgt die Verjährungsfrist 3 Jahre. Du kannst also Flüge aus den letzten 3 Jahren prüfen lassen. Lade einfach deine Unterlagen hoch — wir prüfen, ob dein Anspruch noch gültig ist.</div>
-      </div>
-
-      <div class="faq-item">
-        <div class="faq-q" onclick="toggleFaq(this)">
-          Was passiert, wenn kein Anspruch besteht?
-          <svg class="faq-chevron" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-        </div>
-        <div class="faq-a">Du erhältst trotzdem einen vollständigen Bericht mit einer klaren Erklärung — warum kein Anspruch besteht, was du alternativ tun kannst, und wo du weitere Hilfe findest. Du zahlst nie für einen leeren Bericht.</div>
-      </div>
-
-      <div class="faq-item">
-        <div class="faq-q" onclick="toggleFaq(this)">
-          Muss ich selbst mit der Airline kommunizieren?
-          <svg class="faq-chevron" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-        </div>
-        <div class="faq-a">Ja. Du sendest das fertige Anspruchsschreiben selbst — das dauert 5 Minuten. Wenn die Airline ablehnt oder nicht antwortet, bekommst du von uns konkrete Hinweise zu weiteren Schritten: Schlichtungsstelle Reise & Verkehr, Luftfahrt-Bundesamt oder Amtsgericht.</div>
-      </div>
-
-      <div class="faq-item">
-        <div class="faq-q" onclick="toggleFaq(this)">
-          Ist das eine Rechtsberatung?
-          <svg class="faq-chevron" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-        </div>
-        <div class="faq-a">Nein. FlugClaim.de erstellt eine informative Analyse und ein Musteranspruchsschreiben auf Basis deiner Unterlagen. Wir leisten keine Rechtsberatung. Bei komplexen Situationen empfehlen wir einen Anwalt oder die Verbraucherzentrale.</div>
-      </div>
-
-      <div class="faq-item">
-        <div class="faq-q" onclick="toggleFaq(this)">
-          Was passiert mit meinen Daten?
-          <svg class="faq-chevron" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-        </div>
-        <div class="faq-a">Dein Dokument wird nach der Analyse sofort und dauerhaft gelöscht. Wir speichern keine personenbezogenen Daten länger als für die Verarbeitung erforderlich.</div>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-<!-- FOOTER -->
-<footer class="disclaimer">
-  <div class="container">
-    <p>FlugClaim.de erstellt informative Analysen und Musteranspruchsschreiben auf Basis der EU-Verordnung 261/2004. Wir leisten keine Rechtsberatung und übernehmen keine rechtliche Vertretung. Ein Anspruchsschreiben garantiert keine Auszahlung. Bei Ablehnung können weitere Schritte notwendig sein. Konsultiere bei Bedarf einen Anwalt oder die Verbraucherzentrale. Dokumente werden nach der Verarbeitung gelöscht. &copy; 2025 FlugClaim.de</p>
-  </div>
-</footer>
-
-<!-- STICKY FOOTER -->
-<div class="sticky-footer" id="sticky-footer">
-  <div>
-    <div class="sticky-footer__text">Flug verspätet oder annulliert?</div>
-    <div class="sticky-footer__sub">Fertiges Schreiben innerhalb 24h · einmalig €29</div>
-  </div>
-  <button class="sticky-cta" onclick="openModal()">Anspruch prüfen — €29 →</button>
-</div>
-
-<!-- MODAL -->
-<div class="modal-overlay" id="modal" onclick="closeModalOutside(event)">
-  <div class="modal">
-    <div class="modal__header">
-      <div class="modal__eyebrow">Was du erhältst</div>
-      <div class="modal__title">Fertiges Anspruchsschreiben innerhalb von 24 Stunden</div>
-      <div class="modal__sub">Du sendest es selbst an die Airline — und behältst 100% der Entschädigung.</div>
-      <div class="modal__price">€29 <span style="font-size:1rem;color:rgba(255,255,255,0.6);font-weight:400;">einmalig · kein Abo</span></div>
-    </div>
-    <div class="modal__body">
-      <div class="modal__feature"><div class="check">✓</div><div>Vollständige EU261-Analyse deines Anspruchs</div></div>
-      <div class="modal__feature"><div class="check">✓</div><div>Prüfung auf außergewöhnliche Umstände als Einwand</div></div>
-      <div class="modal__feature"><div class="check">✓</div><div>Fertiges Anspruchsschreiben — direkt sendbar</div></div>
-      <div class="modal__feature"><div class="check">✓</div><div>Du behältst 100% der Entschädigung</div></div>
-      <div class="modal__disclaimer">Dies ist eine informative Analyse, keine Rechtsberatung. Du sendest das Schreiben selbst.</div>
-      <p id="modal-dynamic-copy" style="margin-bottom:16px;color:var(--muted);font-size:0.88rem;">
-        Wir haben erste Hinweise erkannt. Die vollständige Prüfung folgt nach der Zahlung.
-      </p>
-      <a href="https://buy.stripe.com/DEIN_STRIPE_LINK" class="modal__cta">
-        €29 zahlen und Analyse erhalten →
-      </a>
-      <div class="modal__security">🔒 Sichere Zahlung über Stripe · SEPA-Lastschrift verfügbar</div>
-      <div class="modal__close" onclick="closeModal()">Abbrechen</div>
-    </div>
-  </div>
-</div>
-
-<script src="app.js"></script>
-<script>
-const WORKER_URL = 'https://flugclaimde.workers.dev';
-let gratisFile = null;
-
-function handleGratisFileSelect(input) {
-  if (!input.files || !input.files[0]) return;
-  gratisFile = input.files[0];
-  const zone = document.getElementById('gratis-upload-zone');
-  zone.innerHTML = `<div class="upload-label" style="color:var(--accent);">✓ ${escapeHtmlLocal(gratisFile.name)}</div><div class="upload-hint">Datei ausgewählt</div>`;
-  document.getElementById('gratis-contact-fields').style.display = 'flex';
-  checkGratisReady();
+async function callClaudeDocument(env, { model, maxTokens, prompt, fileBase64, mediaType }) {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": env.ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: maxTokens,
+      messages: [{
+        role: "user",
+        content: [
+          mediaType === "application/pdf"
+            ? { type: "document", source: { type: "base64", media_type: mediaType, data: fileBase64 } }
+            : { type: "image", source: { type: "base64", media_type: mediaType, data: fileBase64 } },
+          { type: "text", text: prompt }
+        ]
+      }]
+    })
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(`Claude API Fehler: ${JSON.stringify(data)}`);
+  return data?.content?.[0]?.text || "";
 }
 
-function escapeHtmlLocal(str) {
-  return String(str || '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+// ── Utils ─────────────────────────────────────────────────────────────────────
+
+async function fileToBase64(file) {
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+  return { base64: btoa(binary), mediaType: file.type || "application/pdf" };
 }
 
-function checkGratisReady() {
-  const name = document.getElementById('gratis-name').value.trim();
-  const email = document.getElementById('gratis-email').value.trim();
-  document.getElementById('gratis-btn').disabled = !(name && email && email.includes('@') && gratisFile);
-}
-
-document.getElementById('gratis-name').addEventListener('input', checkGratisReady);
-document.getElementById('gratis-email').addEventListener('input', checkGratisReady);
-
-async function startGratisUpload() {
-  const name = document.getElementById('gratis-name').value.trim();
-  const email = document.getElementById('gratis-email').value.trim();
-  const btn = document.getElementById('gratis-btn');
-  const status = document.getElementById('gratis-status');
-  if (!gratisFile) return;
-
-  btn.disabled = true;
-  btn.textContent = 'Wird gesendet...';
-  status.className = 'optie-status optie-status--info';
-  status.textContent = 'Dein Dokument wird analysiert...';
-
-  const formData = new FormData();
-  formData.append('file', gratisFile);
-  formData.append('name', name);
-  formData.append('email', email);
-
+function safeJsonParse(str) {
   try {
-    const res = await fetch(`${WORKER_URL}/analyze-free`, { method: 'POST', body: formData });
-    const data = await res.json();
-    if (data.ok) {
-      status.className = 'optie-status optie-status--success';
-      status.textContent = '✓ Du erhältst deine Einschätzung spätestens am nächsten Werktag vor 16:00 Uhr per E-Mail.';
-      btn.textContent = 'Gesendet ✓';
-    } else {
-      throw new Error(data.error || 'Fehler');
-    }
-  } catch (err) {
-    status.className = 'optie-status optie-status--error';
-    status.textContent = 'Fehler: ' + err.message;
-    btn.disabled = false;
-    btn.textContent = 'Kostenlose Einschätzung anfordern';
+    return JSON.parse(String(str).trim());
+  } catch {
+    try {
+      const match = String(str).match(/\{[\s\S]*\}/);
+      return match ? JSON.parse(match[0]) : null;
+    } catch { return null; }
   }
 }
-</script>
-</body>
-</html>
+
+function jsonResponse(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+  });
+}
+
+const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/jpg"];
+const MAX_FILE_SIZE = 8 * 1024 * 1024;
+
+function validateUploadInput({ file, name, email }) {
+  if (!file) return "Keine Datei empfangen";
+  if (file.size > MAX_FILE_SIZE) return `Datei zu groß (max. 8 MB, deine: ${(file.size / 1024 / 1024).toFixed(1)} MB)`;
+  if (!ALLOWED_TYPES.includes(file.type)) return `Dateityp nicht erlaubt (${file.type}). Bitte PDF, JPG oder PNG verwenden.`;
+  if (!name || !String(name).trim()) return "Name fehlt";
+  if (!email || !String(email).includes("@") || !String(email).includes(".")) return "Ungültige E-Mail-Adresse";
+  return null;
+}
+
+function extractTaggedSection(text, tag) {
+  const start = `[${tag}]`;
+  const end = `[/${tag}]`;
+  const si = text.indexOf(start);
+  const ei = text.indexOf(end);
+  if (si === -1 || ei === -1) return "";
+  return text.substring(si + start.length, ei).trim();
+}
+
+function escapeHtml(str) {
+  return String(str || "")
+    .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+}
+
+// ── RTF ───────────────────────────────────────────────────────────────────────
+
+function rtfEscape(str) {
+  return String(str || "")
+    .replace(/\\/g, "\\\\").replace(/\{/g, "\\{").replace(/\}/g, "\\}")
+    .replace(/\n/g, "\\par\n")
+    .replace(/[^\x00-\x7F]/g, c => `\\u${c.charCodeAt(0)}?`);
+}
+
+function rtfToBase64(rtfString) {
+  const bytes = new TextEncoder().encode(rtfString);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+
+function bulletLines(text) {
+  return String(text || "").split("\n").map(l => l.trim()).filter(Boolean)
+    .map(l => `{\\pard\\sb0\\sa200\\fi-300\\li300\\f1\\fs22 \\bullet  ${rtfEscape(l.replace(/^- /, ""))}\\par}`)
+    .join("\n");
+}
+
+function maakAnalyseRtf(analysis, customerName, customerEmail, triage) {
+  const title = extractTaggedSection(analysis, "TITLE") || "Fluganspruch Analyse";
+  const claimBetrag = triage?.claim_amount ? `\\u8364?${triage.claim_amount}` : "unbekannt";
+
+  return `{\\rtf1\\ansi\\deff0
+{\\fonttbl{\\f0\\froman\\fcharset0 Times New Roman;}{\\f1\\fswiss\\fcharset0 Arial;}}
+{\\colortbl;\\red27\\green58\\blue140;\\red153\\green26\\blue26;}
+\\paperw11906\\paperh16838\\margl1800\\margr1800\\margt1440\\margb1440\\f1\\fs22
+{\\pard\\sb400\\sa200\\f1\\fs32\\b\\cf1 ${rtfEscape(title)}\\par}
+{\\pard\\sb0\\sa100\\f1\\fs20\\cf0 Fluggast: ${rtfEscape(customerName || "")} (${rtfEscape(customerEmail || "")})\\par}
+{\\pard\\sb0\\sa200\\f1\\fs20\\cf0 Airline: ${rtfEscape(triage?.airline || "unbekannt")} | St\\u246?rung: ${rtfEscape(triage?.disruption_type || "unbekannt")} | M\\u246?gl. Entsch\\u228?digung: ${claimBetrag} | Risiko: ${rtfEscape(triage?.risk || "")}\\par}
+{\\pard\\sb300\\sa120\\f1\\fs24\\b Zusammenfassung\\par}
+{\\pard\\sa200\\f1\\fs22 ${rtfEscape(extractTaggedSection(analysis, "SUMMARY"))}\\par}
+{\\pard\\sb300\\sa120\\f1\\fs24\\b Feststellungen\\par}
+${bulletLines(extractTaggedSection(analysis, "ISSUES"))}
+{\\pard\\sb300\\sa120\\f1\\fs24\\b Einsch\\u228?tzung\\par}
+{\\pard\\sa200\\f1\\fs22 ${rtfEscape(extractTaggedSection(analysis, "ASSESSMENT"))}\\par}
+{\\pard\\sb300\\sa120\\f1\\fs24\\b N\\u228?chste Schritte\\par}
+${bulletLines(extractTaggedSection(analysis, "NEXT_STEPS"))}
+{\\pard\\sb400\\sa100\\f1\\fs18\\cf0\\i Hinweis: Dies ist eine informative Analyse und keine Rechtsberatung. Bei Unsicherheiten empfehlen wir, die Verbraucherzentrale oder einen Anwalt zu konsultieren.\\par}
+}`;
+}
+
+function maakAnspruchsschreibenRtf(analysis, customerName, triage) {
+  return `{\\rtf1\\ansi\\deff0
+{\\fonttbl{\\f0\\froman\\fcharset0 Times New Roman;}{\\f1\\fswiss\\fcharset0 Arial;}}
+{\\colortbl;\\red27\\green58\\blue140;\\red153\\green26\\blue26;}
+\\paperw11906\\paperh16838\\margl1800\\margr1800\\margt1440\\margb1440\\f1\\fs22
+{\\pard\\sb400\\sa200\\f1\\fs28\\b\\cf2 Anspruchsschreiben EU-VO 261/2004\\par}
+{\\pard\\sb0\\sa200\\f1\\fs20\\cf0 Erstellt f\\u252?r: ${rtfEscape(customerName || "")} | Airline: ${rtfEscape(triage?.airline || "unbekannt")}\\par}
+{\\pard\\sb300\\sa200\\f1\\fs22\\cf0 ${rtfEscape(extractTaggedSection(analysis, "OBJECTION"))}\\par}
+{\\pard\\sb400\\sa100\\f1\\fs18\\cf0\\i Hinweis: Dies ist ein Entwurf und keine Rechtsberatung. Sende das Schreiben per Einschreiben, wenn eine schriftliche Form erforderlich ist. FlugClaim.de haftet nicht f\\u252?r den Ausgang deines Anspruchs.\\par}
+}`;
+}
+
+function maakAdminRtf(analysis, customerName, customerEmail, triage) {
+  const claimBetrag = triage?.claim_amount ? `\\u8364?${triage.claim_amount}` : "unbekannt";
+
+  return `{\\rtf1\\ansi\\deff0
+{\\fonttbl{\\f0\\froman\\fcharset0 Times New Roman;}{\\f1\\fswiss\\fcharset0 Arial;}}
+{\\colortbl;\\red27\\green58\\blue140;\\red153\\green26\\blue26;}
+\\paperw11906\\paperh16838\\margl1800\\margr1800\\margt1440\\margb1440\\f1\\fs22
+{\\pard\\sb400\\sa200\\f1\\fs32\\b\\cf1 ${rtfEscape(extractTaggedSection(analysis, "TITLE") || "Fluganspruch Analyse")}\\par}
+{\\pard\\sb0\\sa100\\f1\\fs20\\cf0 Fluggast: ${rtfEscape(customerName || "")} (${rtfEscape(customerEmail || "")})\\par}
+{\\pard\\sb0\\sa200\\f1\\fs20\\cf0 Airline: ${rtfEscape(triage?.airline || "unbekannt")} | Flug: ${rtfEscape(triage?.flight_number || "unbekannt")} | Datum: ${rtfEscape(triage?.flight_date || "unbekannt")} | Versp\\u228?tung: ${triage?.delay_hours ? triage.delay_hours + " Std." : "unbekannt"} | Betrag: ${claimBetrag} | Risiko: ${rtfEscape(triage?.risk || "")}\\par}
+{\\pard\\sb300\\sa120\\f1\\fs24\\b Zusammenfassung\\par}
+{\\pard\\sa200\\f1\\fs22 ${rtfEscape(extractTaggedSection(analysis, "SUMMARY"))}\\par}
+{\\pard\\sb300\\sa120\\f1\\fs24\\b Feststellungen\\par}
+${bulletLines(extractTaggedSection(analysis, "ISSUES"))}
+{\\pard\\sb300\\sa120\\f1\\fs24\\b Einsch\\u228?tzung\\par}
+{\\pard\\sa200\\f1\\fs22 ${rtfEscape(extractTaggedSection(analysis, "ASSESSMENT"))}\\par}
+{\\pard\\sb300\\sa120\\f1\\fs24\\b N\\u228?chste Schritte\\par}
+${bulletLines(extractTaggedSection(analysis, "NEXT_STEPS"))}
+{\\pard\\sa200\\par}
+{\\pard\\sb300\\sa120\\f1\\fs24\\b\\cf2 Anspruchsschreiben\\par}
+{\\pard\\sa200\\f1\\fs22\\cf0 ${rtfEscape(extractTaggedSection(analysis, "OBJECTION"))}\\par}
+{\\pard\\sb400\\sa100\\f1\\fs18\\cf0\\i Hinweis: Informative Analyse, keine Rechtsberatung.\\par}
+}`;
+}
+
+// ── Handlers ──────────────────────────────────────────────────────────────────
+
+async function handleTriage(env, fileBase64, mediaType) {
+  const raw = await callClaudeDocument(env, {
+    model: "claude-haiku-4-5-20251001", maxTokens: 800,
+    prompt: TRIAGE_PROMPT, fileBase64, mediaType
+  });
+  console.log("TRIAGE RAW:", raw.substring(0, 300));
+  const p = safeJsonParse(raw);
+  console.log("TRIAGE RESULT:", JSON.stringify(p));
+  if (!p) return { airline: null, flight_number: null, flight_date: null, delay_hours: null, disruption_type: null, claim_amount: null, risk: "medium", route: "SONNET" };
+  return {
+    airline: p.airline || null,
+    flight_number: p.flight_number || null,
+    flight_date: p.flight_date || null,
+    delay_hours: typeof p.delay_hours === "number" ? p.delay_hours : null,
+    disruption_type: p.disruption_type || null,
+    claim_amount: typeof p.claim_amount === "number" ? p.claim_amount : null,
+    risk: p.risk || "medium",
+    route: p.route || "SONNET"
+  };
+}
+
+async function handleGratisAnalyse(env, fileBase64, mediaType) {
+  const raw = await callClaudeDocument(env, {
+    model: "claude-haiku-4-5-20251001", maxTokens: 600,
+    prompt: GRATIS_PROMPT, fileBase64, mediaType
+  });
+  console.log("GRATIS RAW:", raw.substring(0, 300));
+  return {
+    airline: extractTaggedSection(raw, "AIRLINE") || null,
+    disruption_type: extractTaggedSection(raw, "DISRUPTION_TYPE") || null,
+    claim_amount: parseFloat(extractTaggedSection(raw, "CLAIM_AMOUNT")) || null,
+    flight_date: extractTaggedSection(raw, "FLIGHT_DATE") || null,
+    risk: extractTaggedSection(raw, "RISK") || "medium",
+    teaser: extractTaggedSection(raw, "TEASER") || null
+  };
+}
+
+async function generateAnalysis(env, { fileBase64, mediaType, route }) {
+  const useSonnet = route === "SONNET";
+  const analysis = await callClaudeDocument(env, {
+    model: useSonnet ? "claude-sonnet-4-6" : "claude-haiku-4-5-20251001",
+    maxTokens: useSonnet ? 3500 : 1800,
+    prompt: useSonnet ? SONNET_PROMPT : HAIKU_PROMPT,
+    fileBase64, mediaType
+  }) || "";
+  console.log("ANALYSIS MODEL:", useSonnet ? "sonnet" : "haiku");
+  console.log("ANALYSIS LENGTH:", analysis.length);
+  console.log("ANALYSIS TAGS:", ["TITLE","SUMMARY","ISSUES","ASSESSMENT","NEXT_STEPS","OBJECTION"].map(t => `${t}:${extractTaggedSection(analysis,t).length > 0 ? "OK" : "MISSING"}`).join(" "));
+  return analysis;
+}
+
+// ── Mail helpers ──────────────────────────────────────────────────────────────
+
+function buildGratisMailHtml({ name, airline, disruption_type, claim_amount, flight_date, risk, teaser, stripeLink }) {
+  const riskLabel = { low: "Niedrig", medium: "Mittel", high: "Hoch" }[risk] || risk;
+  return `
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1f2937;">
+      <h2 style="color:#1d3a6e;">Deine kostenlose Ersteinschätzung</h2>
+      <p>Hallo ${escapeHtml(name)},</p>
+      <p>wir haben dein Fluggastdokument auf Basis der EU-Verordnung 261/2004 analysiert.</p>
+      <table style="width:100%;border-collapse:collapse;margin:24px 0;">
+        <tr style="background:#f3f4f6;"><td style="padding:10px 14px;font-weight:bold;">Fluggesellschaft</td><td style="padding:10px 14px;">${escapeHtml(airline || "unbekannt")}</td></tr>
+        <tr><td style="padding:10px 14px;font-weight:bold;">Art der Störung</td><td style="padding:10px 14px;">${escapeHtml(disruption_type || "unbekannt")}</td></tr>
+        ${flight_date && flight_date !== "unklar" ? `<tr style="background:#f3f4f6;"><td style="padding:10px 14px;font-weight:bold;">Flugdatum</td><td style="padding:10px 14px;">${escapeHtml(flight_date)}</td></tr>` : ""}
+        <tr style="background:#f3f4f6;"><td style="padding:10px 14px;font-weight:bold;">Mögliche Entschädigung</td><td style="padding:10px 14px;font-weight:bold;color:#1d3a6e;">${claim_amount ? `€ ${claim_amount}` : "unbekannt"}</td></tr>
+        <tr><td style="padding:10px 14px;font-weight:bold;">Erfolgsaussicht</td><td style="padding:10px 14px;">${riskLabel}</td></tr>
+      </table>
+      <p style="background:#fef9c3;border-left:4px solid #eab308;padding:12px 16px;border-radius:4px;">${escapeHtml(teaser || "Möglicherweise besteht ein Anspruch auf Entschädigung nach EU-Verordnung 261/2004.")}</p>
+      <p>Für eine vollständige Analyse mit fertigem Anspruchsschreiben:</p>
+      <a href="${stripeLink}" style="display:inline-block;background:#1d3a6e;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;margin:8px 0;">
+        Vollständige Analyse für €29 →
+      </a>
+      <p style="color:#6b7280;font-size:0.85rem;margin-top:32px;">Hinweis: Dies ist eine informative Ersteinschätzung und keine Rechtsberatung. Bei komplexen Fragen empfehlen wir die Verbraucherzentrale oder einen Anwalt.</p>
+    </div>
+  `;
+}
+
+// ── Mailers ───────────────────────────────────────────────────────────────────
+
+async function sendAdminGratisNotification(env, { name, email, gratis, stripeLink }) {
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      from: "FlugClaim.de <noreply@flugclaim.de>",
+      to: [env.ADMIN_EMAIL || "admin@flugclaim.de"],
+      reply_to: [email],
+      subject: `Neue Gratis-Anfrage: ${name} (${email})`,
+      html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+        <p style="background:#f3f4f6;padding:10px 14px;border-radius:6px;font-size:0.85rem;color:#6b7280;">📬 Kundenmail wird morgen um 15:00 Uhr versandt an <strong>${escapeHtml(email)}</strong></p>
+        ${buildGratisMailHtml({ name, ...gratis, stripeLink })}
+      </div>`
+    })
+  });
+  if (!res.ok) throw new Error(`Admin-Benachrichtigung fehlgeschlagen: ${await res.text()}`);
+}
+
+async function sendAdminPaidNotification(env, { customerName, customerEmail, triage, analysis }) {
+  const rtfContent = maakAdminRtf(analysis, customerName, customerEmail, triage);
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      from: "FlugClaim.de <noreply@flugclaim.de>",
+      to: [env.ADMIN_EMAIL || "admin@flugclaim.de"],
+      reply_to: [customerEmail],
+      subject: `Neue bezahlte Analyse: ${customerName || "Unbekannt"} (${customerEmail})`,
+      html: `<div style="font-family:Arial,sans-serif;max-width:720px;margin:0 auto;">
+        <p style="background:#f3f4f6;padding:10px 14px;border-radius:6px;font-size:0.85rem;color:#6b7280;">📬 Kundenmail (2 Anhänge) wird morgen um 15:00 Uhr versandt an <strong>${escapeHtml(customerEmail)}</strong></p>
+        <h2>Neue bezahlte Fluganspruch-Analyse</h2>
+        <p><strong>Name:</strong> ${escapeHtml(customerName || "")}</p>
+        <p><strong>E-Mail:</strong> ${escapeHtml(customerEmail || "")}</p>
+        <p><strong>Airline:</strong> ${escapeHtml(triage?.airline || "unbekannt")}</p>
+        <p><strong>Flugnummer:</strong> ${escapeHtml(triage?.flight_number || "unbekannt")}</p>
+        <p><strong>Datum:</strong> ${escapeHtml(triage?.flight_date || "unbekannt")}</p>
+        <p><strong>Verspätung:</strong> ${triage?.delay_hours ? triage.delay_hours + " Std." : "unbekannt"}</p>
+        <p><strong>Möglicher Betrag:</strong> ${triage?.claim_amount ? `€ ${triage.claim_amount}` : "unbekannt"}</p>
+        <p><strong>Risiko:</strong> ${escapeHtml(triage?.risk || "")}</p>
+      </div>`,
+      attachments: [{ filename: "Fluganspruch-Analyse.rtf", content: rtfToBase64(rtfContent) }]
+    })
+  });
+  if (!res.ok) throw new Error(`Admin-Mail fehlgeschlagen: ${await res.text()}`);
+}
+
+async function sendDelayedGratisEmail(env, entry) {
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      from: "FlugClaim.de <noreply@flugclaim.de>",
+      to: [entry.email],
+      subject: "Deine kostenlose Ersteinschätzung – FlugClaim.de",
+      html: buildGratisMailHtml({
+        name: entry.name,
+        airline: entry.airline,
+        disruption_type: entry.disruption_type,
+        claim_amount: entry.claim_amount,
+        flight_date: entry.flight_date,
+        risk: entry.risk,
+        teaser: entry.teaser,
+        stripeLink: entry.stripe_link || "https://flugclaim.de"
+      })
+    })
+  });
+  if (!res.ok) throw new Error(`Gratis-Mail fehlgeschlagen: ${await res.text()}`);
+}
+
+async function sendDelayedPaidEmail(env, entry) {
+  const analyseRtf = maakAnalyseRtf(entry.analysis, entry.name, entry.email, entry.triage);
+  const anspruchRtf = maakAnspruchsschreibenRtf(entry.analysis, entry.name, entry.triage);
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      from: "FlugClaim.de <noreply@flugclaim.de>",
+      to: [entry.email],
+      subject: "Deine vollständige Fluganspruch-Analyse – FlugClaim.de",
+      html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1f2937;">
+        <h2 style="color:#1d3a6e;">Deine vollständige Analyse ist fertig</h2>
+        <p>Hallo ${escapeHtml(entry.name)},</p>
+        <p>im Anhang findest du zwei Dateien:</p>
+        <ul style="line-height:1.9;">
+          <li><strong>Fluganspruch-Analyse.rtf</strong> — vollständige Analyse mit allen Feststellungen, Einschätzung und nächsten Schritten</li>
+          <li><strong>Anspruchsschreiben.rtf</strong> — fertiges Anspruchsschreiben auf Basis der EU-VO 261/2004, direkt verwendbar</li>
+        </ul>
+        <p>Fluggesellschaft: <strong>${escapeHtml(entry.triage?.airline || "unbekannt")}</strong></p>
+        ${entry.triage?.claim_amount ? `<p>Mögliche Entschädigung: <strong>€ ${entry.triage.claim_amount}</strong></p>` : ""}
+        <p style="background:#f0fdf4;border-left:4px solid #22c55e;padding:12px 16px;border-radius:4px;font-size:0.9rem;">
+          💡 Tipp: Sende das Anspruchsschreiben per Einschreiben mit Rückschein. Bei ausbleibender Reaktion kannst du die Schlichtungsstelle Reise &amp; Verkehr einschalten oder das Amtsgericht anrufen.
+        </p>
+        <p style="color:#6b7280;font-size:0.85rem;margin-top:32px;">Hinweis: Dies ist eine informative Analyse und keine Rechtsberatung.</p>
+      </div>`,
+      attachments: [
+        { filename: "Fluganspruch-Analyse.rtf", content: rtfToBase64(analyseRtf) },
+        { filename: "Anspruchsschreiben.rtf", content: rtfToBase64(anspruchRtf) }
+      ]
+    })
+  });
+  if (!res.ok) throw new Error(`Bezahlte Mail fehlgeschlagen: ${await res.text()}`);
+}
+
+// ── Cron handler ──────────────────────────────────────────────────────────────
+
+async function handleCron(env) {
+  const now = Date.now();
+  const oneDayMs = 24 * 60 * 60 * 1000;
+  const list = await env.FLUG_QUEUE.list();
+
+  for (const key of list.keys) {
+    try {
+      const raw = await env.FLUG_QUEUE.get(key.name);
+      if (!raw) continue;
+      const entry = JSON.parse(raw);
+      if (now - new Date(entry.created_at).getTime() < oneDayMs) continue;
+      if (entry.type === "gratis") {
+        await sendDelayedGratisEmail(env, entry);
+      } else {
+        await sendDelayedPaidEmail(env, entry);
+      }
+      await env.FLUG_QUEUE.delete(key.name);
+    } catch (err) {
+      console.error(`Cron-Fehler für ${key.name}:`, err.message);
+    }
+  }
+}
+
+// ── Main ──────────────────────────────────────────────────────────────────────
+
+export default {
+  async fetch(request, env) {
+    if (request.method === "OPTIONS") {
+      return new Response(null, {
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type"
+        }
+      });
+    }
+
+    const url = new URL(request.url);
+
+    if (request.method === "POST" && url.pathname === "/analyze") {
+      try {
+        const formData = await request.formData();
+        const file = formData.get("file");
+        if (!file) return jsonResponse({ ok: false, error: "Keine Datei empfangen" }, 400);
+        const { base64, mediaType } = await fileToBase64(file);
+        const triage = await handleTriage(env, base64, mediaType);
+        return jsonResponse({ ok: true, ...triage });
+      } catch (err) {
+        return jsonResponse({ ok: false, error: err.message }, 500);
+      }
+    }
+
+    if (request.method === "POST" && url.pathname === "/analyze-free") {
+      try {
+        const formData = await request.formData();
+        const file = formData.get("file");
+        const name = formData.get("name");
+        const email = formData.get("email");
+        const stripeLink = env.STRIPE_LINK || "https://flugclaim.de";
+
+        const err = validateUploadInput({ file, name, email });
+        if (err) return jsonResponse({ ok: false, error: err }, 400);
+
+        const { base64, mediaType } = await fileToBase64(file);
+        const gratis = await handleGratisAnalyse(env, base64, mediaType);
+
+        await env.FLUG_QUEUE.put(`gratis:${Date.now()}:${email}`, JSON.stringify({
+          type: "gratis", name, email,
+          airline: gratis.airline || "",
+          disruption_type: gratis.disruption_type || "",
+          claim_amount: gratis.claim_amount || null,
+          flight_date: gratis.flight_date || "",
+          risk: gratis.risk || "medium",
+          teaser: gratis.teaser || "",
+          stripe_link: stripeLink,
+          created_at: new Date().toISOString()
+        }));
+
+        try { await sendAdminGratisNotification(env, { name, email, gratis, stripeLink }); } catch (_) {}
+
+        return jsonResponse({ ok: true, message: "Du erhältst deine Einschätzung spätestens am nächsten Werktag vor 16:00 Uhr per E-Mail." });
+      } catch (err) {
+        return jsonResponse({ ok: false, error: err.message }, 500);
+      }
+    }
+
+    if (request.method === "POST" && url.pathname === "/submit") {
+      try {
+        const formData = await request.formData();
+        const file = formData.get("file");
+        const name = formData.get("name");
+        const email = formData.get("email");
+
+        const err = validateUploadInput({ file, name, email });
+        if (err) return jsonResponse({ ok: false, error: err }, 400);
+
+        const { base64, mediaType } = await fileToBase64(file);
+        const triage = await handleTriage(env, base64, mediaType);
+        const analysis = await generateAnalysis(env, { fileBase64: base64, mediaType, route: triage.route });
+
+        await env.FLUG_QUEUE.put(`paid:${Date.now()}:${email}`, JSON.stringify({
+          type: "paid", name, email, analysis, triage,
+          created_at: new Date().toISOString()
+        }));
+
+        await sendAdminPaidNotification(env, { customerName: name, customerEmail: email, triage, analysis });
+
+        return jsonResponse({ ok: true, message: "Upload erfolgreich. Du erhältst deine vollständige Analyse spätestens am nächsten Werktag vor 16:00 Uhr per E-Mail." });
+      } catch (err) {
+        return jsonResponse({ ok: false, error: err.message }, 500);
+      }
+    }
+
+    return new Response("Not found", { status: 404 });
+  },
+
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(handleCron(env));
+  }
+};
