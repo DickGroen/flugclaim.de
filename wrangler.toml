@@ -1,1 +1,10 @@
+name = "flugclaim"
+main = "worker/index.js"
+compatibility_date = "2024-12-01"
 
+[[kv_namespaces]]
+binding = "FLUG_QUEUE"
+id = "DEIN_KV_NAMESPACE_ID"
+
+[triggers]
+crons = ["0 13 * * 1-5"]
